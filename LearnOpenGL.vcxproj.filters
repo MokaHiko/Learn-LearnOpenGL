@@ -45,5 +45,9 @@
   <ItemGroup>
     <None Include="src\shaders\basic_vertex.shader" />
     <None Include="src\shaders\basic_fragment.shader" />
+    <None Include="src\shaders\lighting_vertex.shader" />
+    <None Include="src\shaders\lighting_fragment.shader" />
+    <None Include="src\shaders\lightCube_fragment.shader" />
+    <None Include="src\shaders\lightCube_vertex.shader" />
   </ItemGroup>
 </Project>

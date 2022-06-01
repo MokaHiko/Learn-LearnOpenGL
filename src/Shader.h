@@ -21,6 +21,7 @@ public:
 	void setInt(const std::string& name,  int val) const;
 	void setFloat(const std::string& name, float val) const;
 	void setMat4(const std::string& name, glm::mat4 val) const;
+	void setVec3(const std::string& name, glm::vec3 val) const;
 private:
 	unsigned int ID;
 	

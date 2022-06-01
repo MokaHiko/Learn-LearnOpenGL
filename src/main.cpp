@@ -243,11 +243,6 @@ int main()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-	// pass static value
-	lightingShader.use();
-	lightingShader.setVec3("lightPos", lightPos);
-	lightingShader.unuse();
-
 	while (!glfwWindowShouldClose(appWindow))
 	{
 		t = glfwGetTime();
@@ -275,6 +270,7 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glm::mat4 model = glm::mat4(1.0f);
+
 		// light source
 		lightCubeShader.use();
 		lightCubeShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
@@ -282,6 +278,7 @@ int main()
 
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, lightPos);
+		model = glm::scale(model, glm::vec3(0.2f));
 		lightCubeShader.setMat4("model", model);
 
 		glBindVertexArray(lightVAO);
@@ -291,8 +288,11 @@ int main()
 		lightingShader.use();
 		lightingShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
 		lightingShader.setMat4("view", camera.GetViewMatrix());
+
 		lightingShader.setVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
+		lightingShader.setVec3("lightPos", lightPos);
 		lightingShader.setVec3("lightColor", glm::vec3(1.0f));
+		lightingShader.setVec3("viewPos", camera.Position);
 
 		model = glm::mat4(1.0f);
 		model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5, 0.5f, 0.0f));

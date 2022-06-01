@@ -289,10 +289,21 @@ int main()
 		lightingShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
 		lightingShader.setMat4("view", camera.GetViewMatrix());
 
-		lightingShader.setVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
 		lightingShader.setVec3("lightPos", lightPos);
 		lightingShader.setVec3("lightColor", glm::vec3(1.0f));
 		lightingShader.setVec3("viewPos", camera.Position);
+
+		// Material (ambient and diffuse define object color)
+		lightingShader.setVec3("material.ambient", glm::vec3(1.0f, 0.5f, 0.31f));
+		lightingShader.setVec3("material.diffuse", glm::vec3(1.0f, 0.5f, 0.31f));
+		lightingShader.setVec3("material.specular", glm::vec3(0.5f, 0.5f, 0.5f));
+		lightingShader.setFloat("material.shininess", 32.0f);
+
+		// Light Properties
+		lightingShader.setVec3("light.ambient", glm::vec3(0.2f));
+		lightingShader.setVec3("light.diffuse", glm::vec3(0.5f));
+		lightingShader.setVec3("light.specular", glm::vec3(1.0f));
+
 
 		model = glm::mat4(1.0f);
 		model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5, 0.5f, 0.0f));

@@ -6,4 +6,4 @@ My Implementation of each Part(chapter) of the LearnOpenGL EBook by JoeyDeVries 
 ![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Part1.gif) 
 
 ### PART II: *Lighting*
-![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/Part2/DemoGifs/Part2.gif) 
+![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Part2.gif?raw=true) 

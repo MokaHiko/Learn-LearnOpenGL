@@ -13,8 +13,8 @@
 #include "Camera.h"
 #include <vector>
 // App Settings
-float RESOLUTION_X = 800;
-float RESOLUTION_Y = 600;
+float RESOLUTION_X = 1920;
+float RESOLUTION_Y = 1080;
 
 // ---Systems---
 Camera camera{glm::vec3(0.0f, 0.0f, 3.0f)};

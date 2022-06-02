@@ -1,6 +1,6 @@
-### PART 1: *Getting Started*
-![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Part1.gif) 
+### PART II: *Lighting*
+![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Part2.gif) 
 
 ## Features
-1. Basic Free Roam Camera Set Up
-2. 2D Textures 
+1. PHONG Lighting (Ambient, Diffuse, & Specular)
+2. Multiple Light Sources

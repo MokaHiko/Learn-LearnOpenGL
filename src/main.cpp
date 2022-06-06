@@ -8,10 +8,12 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <stdexcept>
+#include <vector>
 
 #include "Shader.h"
 #include "Camera.h"
-#include <vector>
+#include "Model.h"
+
 // App Settings
 float RESOLUTION_X = 1920;
 float RESOLUTION_Y = 1080;
@@ -89,6 +91,7 @@ void Init(GLFWwindow*& window) // we passed a copy of the pointer, a number, we 
 	glViewport(0, 0, RESOLUTION_X, RESOLUTION_Y); // where openGL draws in the window
 
 	glfwSwapInterval(0);
+
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// buffers
@@ -191,8 +194,8 @@ int main()
 	};
 	
 	// shaders
-	Shader lightingShader("src/shaders/lighting_vertex.shader", "src/shaders/lighting_fragment.shader");
 	Shader lightCubeShader("src/shaders/lightCube_vertex.shader", "src/shaders/lightCube_fragment.shader");
+	Shader modelLoadingShader("src/shaders/modelLoading_vertex.shader", "src/shaders/modelLoading_fragment.shader");
 
 	// textures
 	stbi_set_flip_vertically_on_load(true);
@@ -251,12 +254,10 @@ int main()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-	// Cube Material (ambient and diffuse define object color)
-	lightingShader.use();
-	lightingShader.setInt("material.diffuse", 0);
-	lightingShader.setInt("material.specular", 1);
-	lightingShader.setFloat("material.shininess", 32.0f);
-	lightingShader.unuse();
+	// Model material Setup 
+	modelLoadingShader.use();
+	modelLoadingShader.setFloat("material.shininess", 32.0f);
+	modelLoadingShader.unuse();
 
 	// Light VAO
 	unsigned int lightVAO, lightVBO;
@@ -277,30 +278,34 @@ int main()
 	glBindVertexArray(0);
 
 	// Light Properties
-	lightingShader.use();
+	modelLoadingShader.use();
 
 	// Directional Properties
-	lightingShader.setVec3("dirLight.direction", glm::vec3(-0.2f, -1.0f, -0.3f)); 
-	lightingShader.setVec3("dirLight.ambient",  glm::vec3(0.2f)); 
-	lightingShader.setVec3("dirLight.diffuse",  glm::vec3(0.5f));
-	lightingShader.setVec3("dirLight.specular", glm::vec3(1.0f));
+	modelLoadingShader.setVec3("dirLight.direction", glm::vec3(-0.2f, -1.0f, -0.3f)); 
+	modelLoadingShader.setVec3("dirLight.ambient",  glm::vec3(0.2f)); 
+	modelLoadingShader.setVec3("dirLight.diffuse",  glm::vec3(0.5f));
+	modelLoadingShader.setVec3("dirLight.specular", glm::vec3(1.0f));
 
 	// Point properties
 	std::vector<PointLight> pointLights{};
 	for (unsigned int i = 0; i < pointLightPositions.size(); i++)
 	{
 		std::string pointLight = "pointLights[" + std::to_string(i) + "]";
-		lightingShader.setFloat(pointLight + ".constant", 1.0f);
-		lightingShader.setFloat(pointLight + ".linear",  0.09f);
-		lightingShader.setFloat(pointLight + ".quadratic", 0.032f);
+		modelLoadingShader.setFloat(pointLight + ".constant", 1.0f);
+		modelLoadingShader.setFloat(pointLight + ".linear",  0.09f);
+		modelLoadingShader.setFloat(pointLight + ".quadratic", 0.032f);
 
-		lightingShader.setVec3(pointLight + ".ambient",  glm::vec3(0.2f)); 
-		lightingShader.setVec3(pointLight + ".diffuse",  glm::vec3(0.5f));
-		lightingShader.setVec3(pointLight + ".specular", glm::vec3(1.0f));
+		modelLoadingShader.setVec3(pointLight + ".ambient",  glm::vec3(0.2f)); 
+		modelLoadingShader.setVec3(pointLight + ".diffuse",  glm::vec3(0.5f));
+		modelLoadingShader.setVec3(pointLight + ".specular", glm::vec3(1.0f));
 
 		pointLights.push_back(PointLight{ pointLightPositions[i], glm::vec3(0.5f) });
 	}
-	lightingShader.unuse();
+	modelLoadingShader.unuse();
+
+	// Load Survival BackPack Model
+	Model backpack{ "models/survival_backpack/backpack.obj" };
+	Model meatboy{ "models/smb/Super_meatboy_free.obj" };
 
 	while (!glfwWindowShouldClose(appWindow))
 	{
@@ -354,48 +359,30 @@ int main()
 			model = glm::translate(model, pointLights[i].Position);
 			model = glm::scale(model, glm::vec3(0.2f));
 
-			// Change Lighting Properties
+			// Change Point Lighting Properties
 			std::string pointLight = "pointLights[" + std::to_string(i) + "]";
-			lightingShader.use();
-			lightingShader.setVec3(pointLight + ".diffuse",  pointLights[i].Diffuse);
-			lightingShader.setVec3(pointLight + ".position",  pointLights[i].Position * glm::mat3(model));
-			lightingShader.unuse();
+			modelLoadingShader.use();
+			modelLoadingShader.setVec3(pointLight + ".diffuse",  pointLights[i].Diffuse);
+			modelLoadingShader.setVec3(pointLight + ".position",  pointLights[i].Position * glm::mat3(model));
+			modelLoadingShader.unuse();
 
 			// Change Light Cube Properties
-			lightCubeShader.use();
+			modelLoadingShader.use();
 
-			lightCubeShader.setMat4("model", model);
-			pointLights[i].Diffuse = glm::vec3(sin((float)glfwGetTime()), cos((float)glfwGetTime()), sin((float)glfwGetTime()));
-			lightCubeShader.setVec3("color", pointLights[i].Diffuse);
+			modelLoadingShader.setMat4("model", model);
+			pointLights[i].Diffuse = glm::vec3(sin((float)glfwGetTime()) * 0.5f, cos((float)glfwGetTime()) * 0.5f, sin((float)glfwGetTime()) * 0.5f);
+			modelLoadingShader.setVec3("color", pointLights[i].Diffuse);
 
-			glDrawArrays(GL_TRIANGLES, 0, 36);
+			meatboy.Draw(modelLoadingShader);
 		}
 
-		// single cube
-		lightingShader.use();
-		lightingShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
-		lightingShader.setMat4("view", camera.GetViewMatrix());
-		lightingShader.setVec3("viewPos", camera.Position);
-
-
-		// Bind Diffuse & Specular Maps
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, diffuseMap);
-
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, specularMap);
-
-		glBindVertexArray(VAO);
-		for (unsigned int i = 0; i < 10; i++)
-		{
-			model = glm::mat4(1.0f);
-			model = glm::translate(model, cubePositions[i]);
-			model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5, 0.5f, 0.0f));
-			lightingShader.setMat4("model", model);
-
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
-		lightingShader.unuse();
+		// Draw BackPack
+		modelLoadingShader.use();
+		modelLoadingShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
+		modelLoadingShader.setMat4("view", camera.GetViewMatrix());
+		modelLoadingShader.setMat4("model", glm::mat4(1.0f));
+		modelLoadingShader.setVec3("viewPos", camera.Position);
+		backpack.Draw(modelLoadingShader);
 
 		glfwSwapBuffers(appWindow);
 		glfwPollEvents();

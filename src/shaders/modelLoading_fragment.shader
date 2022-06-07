@@ -9,7 +9,6 @@ struct Material{
 	sampler2D texture_specular1;
 	float shininess;
 };
-
 struct DirLight{
 	vec3 direction;
 	// light properties
@@ -30,19 +29,28 @@ struct PointLight {
 	float linear;
 	float quadratic;
 };
-uniform DirLight dirLight;
-uniform PointLight pointLights[NR_POINT_LIGHTS];
 
 // in variables will be interpolated from 3 world position vectors of the triangle
 in vec3 Normal;
 in vec3 FragPos; 
 in vec2 TexCoords;
 
+// Lighting Functions
+vec3 GetDirLight(DirLight light, vec3 normal, vec3 viewDir);
+vec3 GetPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
+
+// Buffer Functions
+float near = 0.1;
+float far = 100.0f;
+float linearDepth(float depth);
+
+// Uniforms
+uniform DirLight dirLight;
+uniform PointLight pointLights[NR_POINT_LIGHTS];
+
 uniform vec3 viewPos;
 uniform Material material;
 
-vec3 GetDirLight(DirLight light, vec3 normal, vec3 viewDir);
-vec3 GetPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 void main()
 {
 	// properties
@@ -57,6 +65,7 @@ void main()
 	{
 		result += GetPointLight(pointLights[i], norm, FragPos, viewDir);
 	}
+
 	FragColor = vec4(result , 1.0);
 }
 
@@ -104,3 +113,10 @@ vec3 GetPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 	return (ambient + diffuse + specular);
 }
 
+float linearDepth(float depth)
+{
+	// Depth Buffers
+	float ndc = depth * 2.0f - 1.0; // transform depth values to ndc
+	float linearDepth = (2.0 * near * far) / (far + near - ndc * (far - near));
+	return linearDepth;
+}

@@ -63,5 +63,8 @@
     <None Include="src\shaders\lightCube_vertex.shader" />
     <None Include="src\shaders\modelLoading_vertex.shader" />
     <None Include="src\shaders\modelLoading_fragment.shader" />
+    <None Include="src\shaders\singleColor_fragment.shader" />
+    <None Include="src\shaders\blending_fragment.shader" />
+    <None Include="src\shaders\vegetation_fragment.shader" />
   </ItemGroup>
 </Project>

@@ -13,6 +13,7 @@
 #include "Shader.h"
 #include "Camera.h"
 #include "Model.h"
+#include <map>
 
 // App Settings
 float RESOLUTION_X = 1920;
@@ -90,12 +91,20 @@ void Init(GLFWwindow*& window) // we passed a copy of the pointer, a number, we 
 	}
 	glViewport(0, 0, RESOLUTION_X, RESOLUTION_Y); // where openGL draws in the window
 
-	glfwSwapInterval(0);
-
+	glfwSwapInterval(1);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// buffers
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_STENCIL_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDepthFunc(GL_LESS);
+
+	glStencilOp(GL_KEEP,     // stencil action if stecil test fails
+			    GL_KEEP,     // stencil action if stencil test passes but depth test fails
+				GL_REPLACE); // stencil action of BOTH stencil and depth buffer pass, only write to buffer if both test pass
+				// the value that is written to the stencil buffer is the reference value set in glStencilFunc
 
 	// set callbacks
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -125,12 +134,13 @@ void processInput(GLFWwindow* window)
 		camera.CameraInput(RIGHT, deltaTime);
 }
 
-
+// helper declarations
+unsigned int TextureFromFile(const char* texName, std::string directory);
 int main()
 {
 	GLFWwindow* appWindow = nullptr;
 	Init(appWindow);
-	float vertices[] = {
+	float cube_vertices[] = {
 		// positions          // normals           // texture coords
 		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
 		 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
@@ -174,75 +184,41 @@ int main()
 		-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
 		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
 	};
-	glm::vec3 cubePositions[] = {
-		glm::vec3(0.0f,  0.0f,  0.0f),
-		glm::vec3(2.0f,  5.0f, -15.0f),
-		glm::vec3(-1.5f, -2.2f, -2.5f),
-		glm::vec3(-3.8f, -2.0f, -12.3f),
-		glm::vec3(2.4f, -0.4f, -3.5f),
-		glm::vec3(-1.7f,  3.0f, -7.5f),
-		glm::vec3(1.3f, -2.0f, -2.5f),
-		glm::vec3(1.5f,  2.0f, -2.5f),
-		glm::vec3(1.5f,  0.2f, -1.5f),
-		glm::vec3(-1.3f,  1.0f, -1.5f)
+	float quad_vertices[] = {
+		// positions          // normals           // texture coords
+		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
+		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
 	};
-	std::vector<glm::vec3> pointLightPositions = {
-	glm::vec3(0.7f, 0.2f, 2.0f),
-	glm::vec3(2.3f, -3.3f, -4.0f),
-	glm::vec3(-4.0f, 2.0f, -12.0f),
-	glm::vec3(0.0f, 0.0f, -3.0f)
-	};
-	
+	std::vector<glm::vec3> vegetation;
+	vegetation.push_back(glm::vec3(-1.5f, 0.0f, -0.48f));
+	vegetation.push_back(glm::vec3(1.5f, 0.0f, 0.51f));
+	vegetation.push_back(glm::vec3(0.0f, 0.0f, 0.7f));
+	vegetation.push_back(glm::vec3(-0.3f, 0.0f, -2.3f));
+	vegetation.push_back(glm::vec3(0.5f, 0.0f, -0.6f));
+
 	// shaders
 	Shader lightCubeShader("src/shaders/lightCube_vertex.shader", "src/shaders/lightCube_fragment.shader");
-	Shader modelLoadingShader("src/shaders/modelLoading_vertex.shader", "src/shaders/modelLoading_fragment.shader");
+	Shader blendingShader("src/shaders/basic_vertex.shader", "src/shaders/blending_fragment.shader");
+	Shader vegetationShader("src/shaders/basic_vertex.shader", "src/shaders/vegetation_fragment.shader");
 
 	// textures
 	stbi_set_flip_vertically_on_load(true);
-	int width, height, nrChannels;
-
-	unsigned char* data = stbi_load("textures/container2.png", &width, &height, &nrChannels, 0);
-	if (!data)
-		std::runtime_error("Failed to load texture");
-	unsigned int diffuseMap;
-	glGenTextures(1, &diffuseMap);
-	glBindTexture(GL_TEXTURE_2D, diffuseMap);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	stbi_image_free(data);
-
-	data = stbi_load("textures/container2_specular.png", &width, &height, &nrChannels, 0);
-	if (!data)
-		std::runtime_error("Failed to Load Image");
-	unsigned int specularMap;
-	glGenTextures(1, &specularMap);
-	glBindTexture(GL_TEXTURE_2D, specularMap);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	stbi_image_free(data);
-
-	glBindTexture(GL_TEXTURE_2D, 0);
+	unsigned int grassTexture, windowTexture;
+	grassTexture = TextureFromFile("grass.png", "textures");
+	windowTexture = TextureFromFile("blending_transparent_window.png", "textures");
 	
-	// Cube VAO
-	unsigned int VAO, VBO, EBO;
-	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
+	// Quad VAO
+	unsigned int quadVAO, quadVBO;
+	glGenVertexArrays(1, &quadVAO);
+	glGenBuffers(1, &quadVBO);
 
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBindVertexArray(quadVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), quad_vertices, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)0);
 	glEnableVertexAttribArray(0);
@@ -253,19 +229,18 @@ int main()
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-
-	// Model material Setup 
-	modelLoadingShader.use();
-	modelLoadingShader.setFloat("material.shininess", 32.0f);
-	modelLoadingShader.unuse();
+	glDeleteBuffers(1, &quadVBO);
 
 	// Light VAO
 	unsigned int lightVAO, lightVBO;
 	glGenVertexArrays(1, &lightVAO);
 	glBindVertexArray(lightVAO);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glGenBuffers(1, &lightVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, lightVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
 
+	glBindBuffer(GL_ARRAY_BUFFER, lightVBO);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)0);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)(3 * sizeof(float)));
@@ -274,38 +249,8 @@ int main()
 	glEnableVertexAttribArray(1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-
-	// Light Properties
-	modelLoadingShader.use();
-
-	// Directional Properties
-	modelLoadingShader.setVec3("dirLight.direction", glm::vec3(-0.2f, -1.0f, -0.3f)); 
-	modelLoadingShader.setVec3("dirLight.ambient",  glm::vec3(0.2f)); 
-	modelLoadingShader.setVec3("dirLight.diffuse",  glm::vec3(0.5f));
-	modelLoadingShader.setVec3("dirLight.specular", glm::vec3(1.0f));
-
-	// Point properties
-	std::vector<PointLight> pointLights{};
-	for (unsigned int i = 0; i < pointLightPositions.size(); i++)
-	{
-		std::string pointLight = "pointLights[" + std::to_string(i) + "]";
-		modelLoadingShader.setFloat(pointLight + ".constant", 1.0f);
-		modelLoadingShader.setFloat(pointLight + ".linear",  0.09f);
-		modelLoadingShader.setFloat(pointLight + ".quadratic", 0.032f);
-
-		modelLoadingShader.setVec3(pointLight + ".ambient",  glm::vec3(0.2f)); 
-		modelLoadingShader.setVec3(pointLight + ".diffuse",  glm::vec3(0.5f));
-		modelLoadingShader.setVec3(pointLight + ".specular", glm::vec3(1.0f));
-
-		pointLights.push_back(PointLight{ pointLightPositions[i], glm::vec3(0.5f) });
-	}
-	modelLoadingShader.unuse();
-
-	// Load Survival BackPack Model
-	Model backpack{ "models/survival_backpack/backpack.obj" };
-	Model meatboy{ "models/smb/Super_meatboy_free.obj" };
+	glDeleteBuffers(1, &lightVBO);
 
 	while (!glfwWindowShouldClose(appWindow))
 	{
@@ -331,11 +276,14 @@ int main()
 
 		// buffer clears
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClearStencil(0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 		glm::mat4 model = glm::mat4(1.0f);
 
 		// ---- light sources ---- 
+		glDisable(GL_STENCIL_TEST);
+
 		lightCubeShader.use();
 		lightCubeShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
 		lightCubeShader.setMat4("view", camera.GetViewMatrix());
@@ -349,47 +297,97 @@ int main()
 
 		glBindVertexArray(lightVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
-		lightCubeShader.unuse();
 
-		// point lights
-		for (unsigned int i = 0; i < pointLights.size(); i++)
+		// ---- objects ----
+		// sort transparent objects positions
+		std::map<float, glm::vec3> sorted; // sorted from nearest to farthest
+		for (unsigned int i = 0; i < vegetation.size(); i++)
 		{
-			model = glm::mat4(1.0f);
-			model = glm::rotate(model,glm::radians((float)glfwGetTime() * 200), glm::vec3(0.5, 0.5, 0.0f));
-			model = glm::translate(model, pointLights[i].Position);
-			model = glm::scale(model, glm::vec3(0.2f));
-
-			// Change Point Lighting Properties
-			std::string pointLight = "pointLights[" + std::to_string(i) + "]";
-			modelLoadingShader.use();
-			modelLoadingShader.setVec3(pointLight + ".diffuse",  pointLights[i].Diffuse);
-			modelLoadingShader.setVec3(pointLight + ".position",  pointLights[i].Position * glm::mat3(model));
-			modelLoadingShader.unuse();
-
-			// Change Light Cube Properties
-			modelLoadingShader.use();
-
-			modelLoadingShader.setMat4("model", model);
-			pointLights[i].Diffuse = glm::vec3(sin((float)glfwGetTime()) * 0.5f, cos((float)glfwGetTime()) * 0.5f, sin((float)glfwGetTime()) * 0.5f);
-			modelLoadingShader.setVec3("color", pointLights[i].Diffuse);
-
-			meatboy.Draw(modelLoadingShader);
+			float distance = glm::length(camera.Position - vegetation[i]);
+			sorted[distance] = vegetation[i];
 		}
 
-		// Draw BackPack
-		modelLoadingShader.use();
-		modelLoadingShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
-		modelLoadingShader.setMat4("view", camera.GetViewMatrix());
-		modelLoadingShader.setMat4("model", glm::mat4(1.0f));
-		modelLoadingShader.setVec3("viewPos", camera.Position);
-		backpack.Draw(modelLoadingShader);
+		// grass
+		vegetationShader.use();
+		vegetationShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
+		vegetationShader.setMat4("view", camera.GetViewMatrix());
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, grassTexture);
+		glBindVertexArray(quadVAO);
+		for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it)
+		{
+			model = glm::mat4(1.0f);
+			model = glm::translate(model, it->second);
+			blendingShader.setMat4("model", model);
+
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+		}
+
+		// windows
+		blendingShader.use();
+		blendingShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
+		blendingShader.setMat4("view", camera.GetViewMatrix());
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, windowTexture);
+		glBindVertexArray(quadVAO);
+		for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it)
+		{
+			model = glm::mat4(1.0f);
+			model = glm::translate(model, it->second + glm::vec3(0.0, 0.0, 1.0));
+			blendingShader.setMat4("model", model);
+
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+		}
 
 		glfwSwapBuffers(appWindow);
 		glfwPollEvents();
 	}
 
-	glDeleteTextures(1, &diffuseMap);
-	glDeleteTextures(1, &specularMap);
+	glDeleteTextures(1, &grassTexture);
 	glfwTerminate();
 	return EXIT_SUCCESS;
+}
+
+// helper functions
+unsigned int TextureFromFile(const char* texName, std::string directory)
+{
+	int width, height, nChannels;
+	std::string fileName = texName;
+	fileName = directory + "/" + texName;
+	unsigned char* data = stbi_load(fileName.c_str(), &width, &height, &nChannels, 0);
+	if (!data)
+	{
+		std::cout << "ERROR::TEXTURE::FAILED TO LOAD TEXTURE : " << fileName << std::endl;
+		stbi_image_free(data);
+		return -1;
+	}
+
+	auto image_format = GL_RGB;
+	if (nChannels > 3)
+		image_format = GL_RGBA;
+
+	unsigned int texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	if (nChannels > 3)
+	{
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	}
+	else
+	{
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	}
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image_format, width, height, 0, image_format, GL_UNSIGNED_BYTE, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	
+	glBindTexture(GL_TEXTURE_2D, 0);
+	stbi_image_free(data);
+	return texture;
 }

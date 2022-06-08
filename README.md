@@ -9,3 +9,12 @@ My Implementation of each Part(chapter) of the LearnOpenGL EBook by JoeyDeVries 
 
 ### PART III: *Model Loading*
 ![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Part3.gif?raw=true) 
+
+### PART IV: *Advance OpenGL*
+- Outlines
+
+![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Part4_Outline.gif) 
+
+- Transparent Objects
+
+![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Part4_Transparent.gif) 

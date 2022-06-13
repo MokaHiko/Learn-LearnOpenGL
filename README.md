@@ -11,6 +11,8 @@ My Implementation of each Part(chapter) of the LearnOpenGL EBook by JoeyDeVries 
 ![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Part3.gif?raw=true) 
 
 ### PART IV: *Advance OpenGL*
+*Depth and Stencil Buffers*
+ 
 - Outlines
 
 ![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Part4_Outline.gif) 
@@ -18,3 +20,17 @@ My Implementation of each Part(chapter) of the LearnOpenGL EBook by JoeyDeVries 
 - Transparent Objects
 
 ![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Part4_Transparent.gif) 
+
+*Post Processing*
+
+- Sharpen
+
+![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Sharpen.gif) 
+
+- Blur
+
+![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Blur.gif) 
+
+- Edge Detection
+
+![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Edge_Detection.gif) 

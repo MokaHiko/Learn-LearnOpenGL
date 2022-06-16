@@ -101,9 +101,9 @@ void Init(GLFWwindow*& window) // we passed a copy of the pointer, a number, we 
 	// buffers
 	glEnable(GL_DEPTH_TEST);
 
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
-	glFrontFace(GL_CCW);
+	// glEnable(GL_CULL_FACE);
+	// glCullFace(GL_BACK);
+	// glFrontFace(GL_CCW);
 
 	// set callbacks
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -249,16 +249,52 @@ int main()
 		-1.0f, -1.0f,  1.0f,
 		1.0f, -1.0f,  1.0f
 	};	
-	std::vector<glm::vec3> pointLightPositions = {
-	glm::vec3(0.7f, 0.2f, 2.0f),
-	glm::vec3(2.3f, -3.3f, -4.0f),
-	glm::vec3(-4.0f, 2.0f, -12.0f),
-	glm::vec3(0.0f, 0.0f, -3.0f)
+	float reflectiveCubeVertices[] = {
+		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+		0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+		0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+		0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+		-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+
+		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+		0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+		0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+		0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+
+		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+		-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+
+		0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+		0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+		0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+		0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+		0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+		0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+
+		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+		0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+		0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+		0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+
+		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+		0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+		0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+		0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
 	};
-	
 	// shaders
 	Shader lightCubeShader("resources/shaders/lightCube_vertex.shader", "resources/shaders/lightCube_fragment.shader");
-	Shader basicShader("resources/shaders/basic_vertex.shader", "resources/shaders/basic_fragment.shader");
+	Shader reflectiveShader("resources/shaders/reflective_vertex.shader", "resources/shaders/reflective_fragment.shader");
 	Shader skyboxShader("resources/shaders/skybox_vertex.shader", "resources/shaders/skybox_fragment.shader");
 
 	// textures
@@ -273,40 +309,24 @@ int main()
 
 	unsigned int skyboxTexture = loadCubeMap(faces);
 	// Cube VAO
-	unsigned int VAO, VBO, EBO;
+	unsigned int VAO, VBO;
 	{
 		glGenVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
 
 		glGenBuffers(1, &VBO);
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(reflectiveCubeVertices), reflectiveCubeVertices, GL_STATIC_DRAW);
 
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)0);
 		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(1, 2,	GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)(3 * sizeof(float)));
+		glVertexAttribPointer(1, 3,	GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)(3 * sizeof(float)));
 		glEnableVertexAttribArray(1);
 
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}
-	// Light VAO
-	unsigned int lightVAO, lightVBO;
-	{
-		glGenVertexArrays(1, &lightVAO);
-		glBindVertexArray(lightVAO);
-
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)0);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)(3 * sizeof(float)));
-		glEnableVertexAttribArray(1);
-
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
-	}
+	
 	// Skybox VAO
 	unsigned int skyboxVAO, skyBoxVBO;
 	{
@@ -351,35 +371,20 @@ int main()
 
 		glm::mat4 model = glm::mat4(1.0f);
 
-		// ---- light sources ---- 
-		lightCubeShader.use();
-		lightCubeShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
-		lightCubeShader.setMat4("view", camera.GetViewMatrix());
-
-		// directional light
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, dirLightPos);
-		model = glm::scale(model, glm::vec3(0.2f));
-		lightCubeShader.setMat4("model", model);
-		lightCubeShader.setVec3("color", glm::vec3(1.0f));
-	
-		glBindVertexArray(lightVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		lightCubeShader.unuse();
-
 		// Cubes
-		basicShader.use();
-		basicShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X/ RESOLUTION_Y, 0.1f, 100.0f));
-		basicShader.setMat4("view", camera.GetViewMatrix());
+		reflectiveShader.use();
+		reflectiveShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X/ RESOLUTION_Y, 0.1f, 100.0f));
+		reflectiveShader.setMat4("view", camera.GetViewMatrix());
+		reflectiveShader.setVec3("cameraPos", camera.Position);
 		glBindVertexArray(VAO);
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, cubeTexture);
-		for(unsigned int i = 0; i < 36; i++)
+		glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+		for(unsigned int i = 0; i < 1; i++)
 		{
 			model = glm::mat4(1.0f);
 			model = glm::translate(model, cubePositions[i]);
 			model = glm::scale(model, glm::vec3(0.25));
-			basicShader.setMat4("model", model);
+			reflectiveShader.setMat4("model", model);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 

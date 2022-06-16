@@ -1,18 +1,14 @@
 ### PART IV: *Advance OpenGL*
-*Post Processing*
+*Cubemaps*
 
-- Sharpen
+- Skybox
 
-![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Sharpen.gif) 
+![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/skybox.gif) 
 
-- Blur
+- Environmental Mapping
 
-![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Blur.gif) 
-
-- Edge Detection
-
-![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/Edge_Detection.gif) 
+![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/environmental_mapping.gif) 
 
 Features:
-1. Off Screen Rendering to Texture
-2. Kernel Post Processing Effects 
+1. Cubemap textures
+2. Environmental Mapped Reflections

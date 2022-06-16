@@ -48,5 +48,6 @@ void main()
     for(int i = 0; i < 9; i++)
         col += sampleTex[i] * edgeDetectionKernel[i];
     
-    FragColor = vec4(col, 1.0);
+    //FragColor = vec4(col, 1.0);
+    FragColor = texture(screenTexture, TexCoords);
 }  

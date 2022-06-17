@@ -11,7 +11,7 @@
 class Shader
 {
 public:
-	Shader(const char* vertexPath, const char* fragmentPath); 
+	Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr); 
 	~Shader();
 
 	void use();
@@ -25,6 +25,6 @@ public:
 private:
 	unsigned int ID;
 	
-	void compileShaders(const char* vCode, const char* fcode);
+	void compileShaders(const char* vCode, const char* fCode, const char* gCode = nullptr);
 };
 

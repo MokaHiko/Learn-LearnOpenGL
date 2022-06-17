@@ -292,10 +292,16 @@ int main()
 		-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
 		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
 	};
+	float points[] = {
+    -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // top-left
+     0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // top-right
+     0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // bottom-right
+    -0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // bottom-left
+};  
+
 	// shaders
-	Shader lightCubeShader("resources/shaders/lightCube_vertex.shader", "resources/shaders/lightCube_fragment.shader");
-	Shader reflectiveShader("resources/shaders/reflective_vertex.shader", "resources/shaders/reflective_fragment.shader");
 	Shader skyboxShader("resources/shaders/skybox_vertex.shader", "resources/shaders/skybox_fragment.shader");
+	Shader geometryDemoShader("resources/shaders/geometrydemo_vertex.shader", "resources/shaders/geometrydemo_fragment.shader", "resources/shaders/geometrydemo_geometry.shader");
 
 	// textures
 	unsigned int cubeTexture = LoadTexture("resources/textures/container.jpg");
@@ -308,25 +314,6 @@ int main()
 		"resources/cube_maps/skybox/back.jpg"};
 
 	unsigned int skyboxTexture = loadCubeMap(faces);
-	// Cube VAO
-	unsigned int VAO, VBO;
-	{
-		glGenVertexArrays(1, &VAO);
-		glBindVertexArray(VAO);
-
-		glGenBuffers(1, &VBO);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(reflectiveCubeVertices), reflectiveCubeVertices, GL_STATIC_DRAW);
-
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)0);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(1, 3,	GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)(3 * sizeof(float)));
-		glEnableVertexAttribArray(1);
-
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
-	}
-	
 	// Skybox VAO
 	unsigned int skyboxVAO, skyBoxVBO;
 	{
@@ -343,6 +330,23 @@ int main()
 		glBindVertexArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
+
+	// Geometry VAO
+	unsigned int lineVAO, lineVBO;
+	glGenVertexArrays(1, &lineVAO);
+	glGenBuffers(1, &lineVBO);
+
+	glBindVertexArray(lineVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1,3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	while (!glfwWindowShouldClose(appWindow))
 	{
@@ -362,31 +366,20 @@ int main()
 			totalTime = 0;
 		}
 
+		// User Input
 		processInput(appWindow);
 		
 		// ----render commands----
 		// clear frame buffers content
-		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		geometryDemoShader.use();
+		glBindVertexArray(lineVAO);
+		glDrawArrays(GL_POINTS, 0, 4);
+		geometryDemoShader.unuse();
+		
 		glm::mat4 model = glm::mat4(1.0f);
-
-		// Cubes
-		reflectiveShader.use();
-		reflectiveShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X/ RESOLUTION_Y, 0.1f, 100.0f));
-		reflectiveShader.setMat4("view", camera.GetViewMatrix());
-		reflectiveShader.setVec3("cameraPos", camera.Position);
-		glBindVertexArray(VAO);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
-		for(unsigned int i = 0; i < 1; i++)
-		{
-			model = glm::mat4(1.0f);
-			model = glm::translate(model, cubePositions[i]);
-			model = glm::scale(model, glm::vec3(0.25));
-			reflectiveShader.setMat4("model", model);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
 
 		// --- Draw Sky Box Last --
 		glBindVertexArray(skyboxVAO);
@@ -407,8 +400,6 @@ int main()
 		glfwPollEvents();
 	}
  
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteVertexArrays(1, &VBO);
 	glDeleteVertexArrays(1, &skyboxVAO);
 	glDeleteVertexArrays(1, &skyBoxVBO);
 
@@ -441,7 +432,6 @@ unsigned int LoadTexture(const std::string& path)
 	stbi_image_free(data);
     return id;
 }
-
 unsigned int loadCubeMap(std::vector<std::string>& faces)
 {
 	unsigned int id;

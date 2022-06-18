@@ -6,7 +6,11 @@ layout (location = 2) in vec2 aTexCoords;
 
 out vec3 Normal;
 out vec3 FragPos;
-out vec2 TexCoords;
+
+out VS_OUT
+{
+	vec2 texCoords;
+}vs_out;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -15,7 +19,7 @@ void main()
 {
 	FragPos = vec3(model * vec4(aPosition, 1.0)); // get fragment position in world space for lighting calculations
 	Normal = mat3(transpose(inverse(model))) * aNormal; // get normals in clip space 
-	TexCoords = aTexCoords;
+	vs_out.texCoords = aTexCoords;
 
 	gl_Position = projection * view * model * vec4(aPosition, 1.0);
 }

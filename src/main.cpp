@@ -1,16 +1,16 @@
 #include <iostream>
 
+#define STB_IMAGE_IMPLEMENTATION
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb/stb_image.h>
-
 #include <stdexcept>
 #include <vector>
 
+#include "Model.h"
 #include "Shader.h"
 #include "Camera.h"
 
@@ -302,6 +302,8 @@ int main()
 	// shaders
 	Shader skyboxShader("resources/shaders/skybox_vertex.shader", "resources/shaders/skybox_fragment.shader");
 	Shader geometryDemoShader("resources/shaders/geometrydemo_vertex.shader", "resources/shaders/geometrydemo_fragment.shader", "resources/shaders/geometrydemo_geometry.shader");
+	Shader basicModelShader("resources/shaders/modelLoading_vertex.shader", "resources/shaders/modelLoadingBasic_fragment.shader", "resources/shaders/explosion_geometry.shader");
+	Shader reflectiveShader("resources/shaders/reflective_vertex.shader", "resources/shaders/reflective_fragment.shader");
 
 	// textures
 	unsigned int cubeTexture = LoadTexture("resources/textures/container.jpg");
@@ -333,20 +335,44 @@ int main()
 
 	// Geometry VAO
 	unsigned int lineVAO, lineVBO;
-	glGenVertexArrays(1, &lineVAO);
-	glGenBuffers(1, &lineVBO);
+	{
+		glGenVertexArrays(1, &lineVAO);
+		glGenBuffers(1, &lineVBO);
 
-	glBindVertexArray(lineVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
+		glBindVertexArray(lineVAO);
+		glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
 
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1,3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1,3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
 
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+
+	// Some Cube
+	unsigned int cubeVAO, cubeVBO;
+	{
+		glGenVertexArrays(1, &cubeVAO);
+		glGenBuffers(1, &cubeVBO);
+
+		glBindVertexArray(cubeVAO);
+		glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(reflectiveCubeVertices), reflectiveCubeVertices, GL_STATIC_DRAW);
+
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1,3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+
+		glBindVertexArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+
+	// Models
+	Model demoModel{"resources/models/backpack/backpack.obj"};
 
 	while (!glfwWindowShouldClose(appWindow))
 	{
@@ -371,29 +397,46 @@ int main()
 		
 		// ----render commands----
 		// clear frame buffers content
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		geometryDemoShader.use();
-		glBindVertexArray(lineVAO);
-		glDrawArrays(GL_POINTS, 0, 4);
-		geometryDemoShader.unuse();
-		
 		glm::mat4 model = glm::mat4(1.0f);
 
-		// --- Draw Sky Box Last --
-		glBindVertexArray(skyboxVAO);
-		glDepthFunc(GL_LEQUAL); // To Draw Even When Previous Depth Buffer is the same
-		skyboxShader.use();
-		skyboxShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
-		skyboxShader.setMat4("view", glm::mat4(glm::mat3(camera.GetViewMatrix())));
-		
-		skyboxShader.setInt("skybox", 0); // Bind Texture
-		glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+		basicModelShader.use();
+		basicModelShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
+		basicModelShader.setMat4("view", camera.GetViewMatrix());
+		basicModelShader.setMat4("model", glm::mat4(1.0f));
+		basicModelShader.setFloat("time", glfwGetTime());
+		demoModel.Draw(basicModelShader);
+		basicModelShader.unuse();
 
+		reflectiveShader.use();
+		reflectiveShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
+		reflectiveShader.setMat4("view", camera.GetViewMatrix());
+
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(0.5, 0.5, 0.0f));
+		reflectiveShader.setMat4("model", glm::mat4(1.0f));
+		reflectiveShader.setVec3("cameraPos", camera.Position);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+		glBindVertexArray(cubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
-		skyboxShader.unuse();
-		glDepthFunc(GL_LESS); // return to default
+		reflectiveShader.unuse();
+
+		// --- Draw Sky Box Last --
+		 glBindVertexArray(skyboxVAO);
+		 glDepthFunc(GL_LEQUAL); // To Draw Even When Previous Depth Buffer is the same
+		 skyboxShader.use();
+		 skyboxShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
+		 skyboxShader.setMat4("view", glm::mat4(glm::mat3(camera.GetViewMatrix())));
+		
+		 skyboxShader.setInt("skybox", 0); // Bind Texture
+		 glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+
+		 glDrawArrays(GL_TRIANGLES, 0, 36);
+		 skyboxShader.unuse();
+		 glDepthFunc(GL_LESS); // return to default
 
 		// swap buffers
 		glfwSwapBuffers(appWindow);
@@ -459,6 +502,7 @@ unsigned int loadCubeMap(std::vector<std::string>& faces)
 			glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 			stbi_image_free(data);
 		}
+    	stbi_set_flip_vertically_on_load(false);
 	}
 
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

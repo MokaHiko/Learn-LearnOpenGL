@@ -303,6 +303,7 @@ int main()
 	Shader skyboxShader("resources/shaders/skybox_vertex.shader", "resources/shaders/skybox_fragment.shader");
 	Shader geometryDemoShader("resources/shaders/geometrydemo_vertex.shader", "resources/shaders/geometrydemo_fragment.shader", "resources/shaders/geometrydemo_geometry.shader");
 	Shader basicModelShader("resources/shaders/modelLoading_vertex.shader", "resources/shaders/modelLoadingBasic_fragment.shader", "resources/shaders/explosion_geometry.shader");
+	Shader showNormalShader("resources/shaders/showNormal_vertex.shader", "resources/shaders/showNormal_fragment.shader", "resources/shaders/showNormal_geometry.shader");
 	Shader reflectiveShader("resources/shaders/reflective_vertex.shader", "resources/shaders/reflective_fragment.shader");
 
 	// textures
@@ -401,22 +402,32 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glm::mat4 model = glm::mat4(1.0f);
+		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f);
 
+		// draw model
 		basicModelShader.use();
-		basicModelShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
+		basicModelShader.setMat4("projection", projection);
 		basicModelShader.setMat4("view", camera.GetViewMatrix());
 		basicModelShader.setMat4("model", glm::mat4(1.0f));
 		basicModelShader.setFloat("time", glfwGetTime());
 		demoModel.Draw(basicModelShader);
 		basicModelShader.unuse();
 
+		// draw normals
+		showNormalShader.use();
+		showNormalShader.setMat4("projection", projection);
+		showNormalShader.setMat4("view", camera.GetViewMatrix());
+		showNormalShader.setMat4("model", glm::mat4(1.0f));
+		demoModel.Draw(showNormalShader);
+		basicModelShader.unuse();
+
 		reflectiveShader.use();
-		reflectiveShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
+		reflectiveShader.setMat4("projection", projection);
 		reflectiveShader.setMat4("view", camera.GetViewMatrix());
 
 		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.5, 0.5, 0.0f));
-		reflectiveShader.setMat4("model", glm::mat4(1.0f));
+		model = glm::translate(model, glm::vec3(0.5, 0.5, 2.0f));
+		reflectiveShader.setMat4("model", model);
 		reflectiveShader.setVec3("cameraPos", camera.Position);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
@@ -428,7 +439,7 @@ int main()
 		 glBindVertexArray(skyboxVAO);
 		 glDepthFunc(GL_LEQUAL); // To Draw Even When Previous Depth Buffer is the same
 		 skyboxShader.use();
-		 skyboxShader.setMat4("projection", glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f));
+		 skyboxShader.setMat4("projection", projection);
 		 skyboxShader.setMat4("view", glm::mat4(glm::mat3(camera.GetViewMatrix())));
 		
 		 skyboxShader.setInt("skybox", 0); // Bind Texture

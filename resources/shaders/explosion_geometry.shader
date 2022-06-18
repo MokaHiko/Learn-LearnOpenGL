@@ -18,7 +18,7 @@ vec3 GetNormal() // view space prior to clip space the ndc
 
 vec4 Explode(vec4 position, vec3 normal)
 {
-    float magnitude = 2.0;
+    float magnitude = 0.0;
     vec3 direction = normal * ((sin(time) + 1) / 2.0f) * magnitude;
     return position + vec4(direction, 0.0); 
 }

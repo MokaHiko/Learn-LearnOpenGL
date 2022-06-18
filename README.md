@@ -1,14 +1,14 @@
 ### PART IV: *Advance OpenGL*
-*Cubemaps*
+*Geometry Shader*
 
-- Skybox
+- Explosion
 
-![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/skybox.gif) 
+![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/explosion.gif) 
 
-- Environmental Mapping
+- Normal Visualization
 
-![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/environmental_mapping.gif) 
+![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/normals.gif) 
 
 Features:
-1. Cubemap textures
-2. Environmental Mapped Reflections
+1. Geometry Shader Explosion
+2. Geometry Shader visualization

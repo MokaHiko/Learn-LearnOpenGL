@@ -44,3 +44,13 @@ My Implementation of each Part(chapter) of the LearnOpenGL EBook by JoeyDeVries 
 - Environmental Mapping
 
 ![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/environmental_mapping.gif) 
+
+*Geometry Shader*
+
+- Explosion
+
+![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/explosion.gif) 
+
+- Normal Visualization
+
+![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/normals.gif) 

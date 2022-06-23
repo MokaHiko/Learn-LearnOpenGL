@@ -95,6 +95,11 @@ void Shader::setVec3(const std::string& name, glm::vec3 val) const
 	glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(val));
 }
 
+void Shader::setVec2(const std::string& name, glm::vec2 val) const
+{
+	glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(val));
+}
+
 void Shader::compileShaders(const char* vCode, const char* fCode, const char* gCode)
 {
 	// params
@@ -150,7 +155,7 @@ void Shader::compileShaders(const char* vCode, const char* fCode, const char* gC
 	if (!success)
 	{
 		glGetProgramInfoLog(ID, 512, nullptr, infoLog);
-		std::cout << "ERROR::SHADER::PROGRAM::FAILED_TO_LINK" << std::endl;
+		std::cout << "ERROR::SHADER::PROGRAM::FAILED_TO_LINK: " << infoLog <<  std::endl;
 	}
 
 	glDeleteShader(vShader);

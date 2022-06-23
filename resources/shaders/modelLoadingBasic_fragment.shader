@@ -8,11 +8,14 @@ struct Material{
 
 out vec4 FragColor; 
 
-in vec2 TexCoords;
+in VS_OUT{
+	vec2 texCoords;
+}fs_in;
+
 
 uniform Material material;
 
 void main()
 {
-    FragColor = texture(material.texture_diffuse1, TexCoords);
+    FragColor = texture(material.texture_diffuse1, fs_in.texCoords);
 }

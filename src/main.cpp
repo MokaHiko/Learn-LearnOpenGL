@@ -195,7 +195,7 @@ int main()
 		glm::vec3(1.5f,  0.2f, -1.5f),
 		glm::vec3(-1.3f,  1.0f, -1.5f)
 	};
-	float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+	float screenQuadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
         // positions   // texCoords
         -1.0f,  1.0f,  0.0f, 1.0f,
         -1.0f, -1.0f,  0.0f, 0.0f,
@@ -205,6 +205,15 @@ int main()
          1.0f, -1.0f,  1.0f, 0.0f,
          1.0f,  1.0f,  1.0f, 1.0f
     };
+	float quadVertices[] = {
+		// positions // colors
+		-0.05f, 0.05f, 1.0f, 0.0f, 0.0f,
+		0.05f, -0.05f, 0.0f, 1.0f, 0.0f,
+		-0.05f, -0.05f, 0.0f, 0.0f, 1.0f,
+		-0.05f, 0.05f, 1.0f, 0.0f, 0.0f,
+		0.05f, -0.05f, 0.0f, 1.0f, 0.0f,
+		0.05f, 0.05f, 0.0f, 1.0f, 1.0f
+		};
 	float skyboxVertices[] = {
 		// positions          
 		-1.0f,  1.0f, -1.0f,
@@ -302,9 +311,10 @@ int main()
 	// shaders
 	Shader skyboxShader("resources/shaders/skybox_vertex.shader", "resources/shaders/skybox_fragment.shader");
 	Shader geometryDemoShader("resources/shaders/geometrydemo_vertex.shader", "resources/shaders/geometrydemo_fragment.shader", "resources/shaders/geometrydemo_geometry.shader");
-	Shader basicModelShader("resources/shaders/modelLoading_vertex.shader", "resources/shaders/modelLoadingBasic_fragment.shader", "resources/shaders/explosion_geometry.shader");
+	Shader basicModelShader("resources/shaders/modelLoading_vertex.shader", "resources/shaders/modelLoadingBasic_fragment.shader");
 	Shader showNormalShader("resources/shaders/showNormal_vertex.shader", "resources/shaders/showNormal_fragment.shader", "resources/shaders/showNormal_geometry.shader");
 	Shader reflectiveShader("resources/shaders/reflective_vertex.shader", "resources/shaders/reflective_fragment.shader");
+	Shader instanceShader("resources/shaders/instancing_vertex.shader", "resources/shaders/instancing_fragment.shader");
 
 	// textures
 	unsigned int cubeTexture = LoadTexture("resources/textures/container.jpg");
@@ -333,7 +343,6 @@ int main()
 		glBindVertexArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
-
 	// Geometry VAO
 	unsigned int lineVAO, lineVBO;
 	{
@@ -352,7 +361,6 @@ int main()
 		glBindVertexArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
-
 	// Some Cube
 	unsigned int cubeVAO, cubeVBO;
 	{
@@ -372,8 +380,52 @@ int main()
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
+	// Quad VAO
+	unsigned int instanceVBO;
+	glm::vec2 translations[100]; // translations and coordinates are in NDC
+	int index = 0;
+	float offset = 0.1f;
+	for(int y = -10; y < 10; y += 2)
+	{
+		for(int x = -10; x < 10; x+=2)
+		{
+			glm::vec2 translation;
+			translation.x = (float)x / 10.0f + offset;
+			translation.y = (float)y / 10.0f + offset;
+			translations[index++] = translation;
+		}
+	}
+	glGenBuffers(1, &instanceVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 100, translations, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	unsigned int quadVAO, quadVBO;
+	glGenVertexArrays(1, &quadVAO);
+	glGenBuffers(1, &quadVBO);
+
+	glBindVertexArray(quadVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 100, quadVertices, GL_STATIC_DRAW);
+
+	// Vertex Attributes
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)(sizeof(float) * 3));
+
+	// Instance Attributes
+	glEnableVertexAttribArray(2); // uses current bound buffer to determine layout data and layout update
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribDivisor(2, 1); //(which vertex attribute, 0 = every vertex -> 1 = every instance -> 2 = every 2 instances...)
+
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 	// Models
-	Model demoModel{"resources/models/backpack/backpack.obj"};
+	//Model demoModel{"resources/models/backpack/backpack.obj"};
 
 	while (!glfwWindowShouldClose(appWindow))
 	{
@@ -405,35 +457,33 @@ int main()
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f);
 
 		// draw model
-		basicModelShader.use();
-		basicModelShader.setMat4("projection", projection);
-		basicModelShader.setMat4("view", camera.GetViewMatrix());
-		basicModelShader.setMat4("model", glm::mat4(1.0f));
-		basicModelShader.setFloat("time", glfwGetTime());
-		demoModel.Draw(basicModelShader);
-		basicModelShader.unuse();
+		// basicModelShader.use();
+		// basicModelShader.setMat4("projection", projection);
+		// basicModelShader.setMat4("view", camera.GetViewMatrix());
+		// basicModelShader.setMat4("model", glm::mat4(1.0f));
+		// basicModelShader.setFloat("time", glfwGetTime());
+		// demoModel.Draw(basicModelShader);
+		// basicModelShader.unuse();
 
-		// draw normals
-		showNormalShader.use();
-		showNormalShader.setMat4("projection", projection);
-		showNormalShader.setMat4("view", camera.GetViewMatrix());
-		showNormalShader.setMat4("model", glm::mat4(1.0f));
-		demoModel.Draw(showNormalShader);
-		basicModelShader.unuse();
+		// draw reflective cube
+		// reflectiveShader.use();
+		// reflectiveShader.setMat4("projection", projection);
+		// reflectiveShader.setMat4("view", camera.GetViewMatrix());
 
-		reflectiveShader.use();
-		reflectiveShader.setMat4("projection", projection);
-		reflectiveShader.setMat4("view", camera.GetViewMatrix());
+		// model = glm::mat4(1.0f);
+		// model = glm::translate(model, glm::vec3(0.5, 0.5, 2.0f));
+		// reflectiveShader.setMat4("model", model);
+		// reflectiveShader.setVec3("cameraPos", camera.Position);
+		// glActiveTexture(GL_TEXTURE0);
+		// glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+		// glBindVertexArray(cubeVAO);
+		// glDrawArrays(GL_TRIANGLES, 0, 36);
+		// reflectiveShader.unuse();
 
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.5, 0.5, 2.0f));
-		reflectiveShader.setMat4("model", model);
-		reflectiveShader.setVec3("cameraPos", camera.Position);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
-		glBindVertexArray(cubeVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		reflectiveShader.unuse();
+		// draw quad instances
+		instanceShader.use();
+		glBindVertexArray(quadVAO);
+		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 100);
 
 		// --- Draw Sky Box Last --
 		 glBindVertexArray(skyboxVAO);

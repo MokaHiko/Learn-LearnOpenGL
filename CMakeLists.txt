@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.23.2)
+cmake_minimum_required(VERSION 3.21.4)
 
 project(LearnOpenGL_Part4)
 
@@ -31,14 +31,14 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE glm
     PRIVATE glfw3
     PRIVATE opengl32
-    PRIVATE assimp-vc143-mtd
+    PRIVATE assimp-vc142-mtd
     )
 
 # move dlls
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "${PROJECT_SOURCE_DIR}/dependencies/assimp/lib/assimp-vc143-mtd.dll"
+    "${PROJECT_SOURCE_DIR}/dependencies/assimp/lib/assimp-vc142-mtd.dll"
     ${PROJECT_BINARY_DIR}
     COMMENT "Copying dll to binary folder"
 )
@@ -54,4 +54,4 @@ add_custom_target(
 
 add_dependencies(${PROJECT_NAME} copy_resources)
 
-add_compile_definitions(_APPLE_)
+#add_compile_definitions(_APPLE_)

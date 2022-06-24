@@ -1,14 +1,9 @@
 ### PART IV: *Advance OpenGL*
-*Geometry Shader*
+*Instancing*
 
-- Explosion
+- Moving Asteroids
 
-![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/explosion.gif) 
-
-- Normal Visualization
-
-![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/normals.gif) 
+![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/asteroids.gif) 
 
 Features:
-1. Geometry Shader Explosion
-2. Geometry Shader visualization
+1. Instanced based rendering

@@ -132,6 +132,7 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera.CameraInput(RIGHT, deltaTime);
 }
+glm::mat4* GetCircularPosition(glm::mat4* modelMatrices, unsigned int amount, float radius, float offset);
 
 unsigned int LoadTexture(const std::string& path); 
 unsigned int loadCubeMap(std::vector<std::string>& faces);
@@ -499,9 +500,26 @@ int main()
 		instanceShader.setInt("material.texture_diffuse1", 0);
 		glActiveTexture(0);
 		glBindTexture(GL_TEXTURE_2D, asteroidModel.textures_loaded[0].id);
-		for(unsigned int i = 0; i < asteroidModel.Meshes.size(); i ++)
+		glBindBuffer(GL_ARRAY_BUFFER, asteroidPositionBuffer);
+
+		// update positions
+		glm::mat4* newPositionMatrices = GetCircularPosition(modelMatrices, amount, radius, offset);
+		glBufferSubData(GL_ARRAY_BUFFER,0, sizeof(glm::mat4) * amount, newPositionMatrices);
+
+		for(unsigned int i = 0; i < asteroidModel.Meshes.size(); i ++) // draw each mesh in model
 		{
 			glBindVertexArray(asteroidModel.Meshes[i].VAO);
+
+			// update positions
+			glEnableVertexAttribArray(3);
+			glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+			glEnableVertexAttribArray(4);
+			glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4) * 1));
+			glEnableVertexAttribArray(5);
+			glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4) * 2));
+			glEnableVertexAttribArray(6);
+			glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4) * 3));
+
 			glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(asteroidModel.Meshes[i].Indices.size()), GL_UNSIGNED_INT, 0, amount);
 			glBindVertexArray(0);
 		}
@@ -595,4 +613,33 @@ unsigned int loadCubeMap(std::vector<std::string>& faces)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
 	return id;
+}
+
+glm::mat4* GetCircularPosition(glm::mat4* modelMatrices, unsigned int amount, float radius, float offset)
+{
+    for (unsigned int i = 0; i < amount; i++)
+    {
+		glm::mat4 model = glm::mat4(1.0f);
+        // 1. translation: displace along circle with 'radius' in range [-offset, offset]
+        float angle = ((float)i / (float)amount * 360.0f);
+        float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float x = sin(angle) * radius + displacement;
+        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float y = displacement * 0.4f * 0; // keep height of asteroid field smaller compared to width of x and z
+        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float z = cos(angle) * radius + displacement;
+        model = glm::translate(model, glm::vec3(x, y, z));
+
+        // // 2. scale: Scale between 0.05 and 0.25f
+        float scale = static_cast<float>((rand() % 20) / 100.0 + 0.05);
+        model = glm::scale(model, glm::vec3(scale));
+
+        // // 3. rotation: add random rotation around a (semi)randomly picked rotation axis vector
+        float rotAngle = static_cast<float>((rand() % 360));
+        model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+
+        // 4. now add to list of matrices
+        modelMatrices[i] = model;
+    }
+	return modelMatrices;
 }

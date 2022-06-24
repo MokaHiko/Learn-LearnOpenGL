@@ -54,3 +54,9 @@ My Implementation of each Part(chapter) of the LearnOpenGL EBook by JoeyDeVries 
 - Normal Visualization
 
 ![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/normals.gif) 
+
+*Instancing*
+
+- Moving Asteroids
+
+![alt text](https://github.com/tic-tacs/Learn-LearnOpenGL/blob/main/DemoGifs/asteroids.gif) 

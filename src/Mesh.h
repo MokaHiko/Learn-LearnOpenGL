@@ -29,9 +29,9 @@ public:
 	~Mesh();
 	void Draw(Shader& shader);
 	void Clean();
-private:
-	void setUpMesh();
 
 	// render data
 	unsigned int VAO, VBO, EBO;
+private:
+	void setUpMesh();
 };

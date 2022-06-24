@@ -24,7 +24,7 @@
 #endif
 
 // ---Systems---
-Camera camera{glm::vec3(0.0f, 0.0f, 3.0f)};
+Camera camera(glm::vec3(0.0f, 0.0f, 55.0f));
 
 float lastX; 
 float lastY;
@@ -94,7 +94,7 @@ void Init(GLFWwindow*& window) // we passed a copy of the pointer, a number, we 
 	}
 	glViewport(0, 0, RESOLUTION_X, RESOLUTION_Y); // where openGL draws in the window
 
-	glfwSwapInterval(1);
+	glfwSwapInterval(0);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -311,20 +311,20 @@ int main()
 	// shaders
 	Shader skyboxShader("resources/shaders/skybox_vertex.shader", "resources/shaders/skybox_fragment.shader");
 	Shader geometryDemoShader("resources/shaders/geometrydemo_vertex.shader", "resources/shaders/geometrydemo_fragment.shader", "resources/shaders/geometrydemo_geometry.shader");
-	Shader basicModelShader("resources/shaders/modelLoading_vertex.shader", "resources/shaders/modelLoadingBasic_fragment.shader");
 	Shader showNormalShader("resources/shaders/showNormal_vertex.shader", "resources/shaders/showNormal_fragment.shader", "resources/shaders/showNormal_geometry.shader");
 	Shader reflectiveShader("resources/shaders/reflective_vertex.shader", "resources/shaders/reflective_fragment.shader");
-	Shader instanceShader("resources/shaders/instancing_vertex.shader", "resources/shaders/instancing_fragment.shader");
+	Shader instanceShader("resources/shaders/modelLoadingIntanced_vertex.shader", "resources/shaders/modelLoadingBasic_fragment.shader");
+	Shader basicModelShader("resources/shaders/modelLoading_vertex.shader", "resources/shaders/modelLoadingBasic_fragment.shader");
 
 	// textures
 	unsigned int cubeTexture = LoadTexture("resources/textures/container.jpg");
 	std::vector<std::string> faces{
-		"resources/cube_maps/skybox/right.jpg",
-		"resources/cube_maps/skybox/left.jpg",
-		"resources/cube_maps/skybox/top.jpg",
-		"resources/cube_maps/skybox/bottom.jpg",
-		"resources/cube_maps/skybox/front.jpg",
-		"resources/cube_maps/skybox/back.jpg"};
+		"resources/cube_maps/blue/right.png",
+		"resources/cube_maps/blue/left.png",
+		"resources/cube_maps/blue/top.png",
+		"resources/cube_maps/blue/bot.png",
+		"resources/cube_maps/blue/front.png",
+		"resources/cube_maps/blue/back.png"};
 
 	unsigned int skyboxTexture = loadCubeMap(faces);
 	// Skybox VAO
@@ -380,53 +380,69 @@ int main()
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
-	// Quad VAO
-	unsigned int instanceVBO;
-	glm::vec2 translations[100]; // translations and coordinates are in NDC
-	int index = 0;
-	float offset = 0.1f;
-	for(int y = -10; y < 10; y += 2)
+	Model demoModel{"resources/models/planet/planet.obj"};
+	Model asteroidModel{"resources/models/rock/rock.obj"};
+
+	// Asteroids Position Buffer
+	unsigned int amount = 2000;
+    glm::mat4* modelMatrices = new glm::mat4[amount];
+    srand(static_cast<unsigned int>(glfwGetTime())); // initialize random seed
+    float radius = 50.0;
+    float offset = 2.5f;
+    for (unsigned int i = 0; i < amount; i++)
+    {
+		glm::mat4 model = glm::mat4(1.0f);
+        // 1. translation: displace along circle with 'radius' in range [-offset, offset]
+        float angle = (float)i / (float)amount * 360.0f;
+        float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float x = sin(angle) * radius + displacement;
+        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float y = displacement * 0.4f; // keep height of asteroid field smaller compared to width of x and z
+        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float z = cos(angle) * radius + displacement;
+        model = glm::translate(model, glm::vec3(x, y, z));
+
+        // 2. scale: Scale between 0.05 and 0.25f
+        float scale = static_cast<float>((rand() % 20) / 100.0 + 0.05);
+        model = glm::scale(model, glm::vec3(scale));
+
+        // 3. rotation: add random rotation around a (semi)randomly picked rotation axis vector
+        float rotAngle = static_cast<float>((rand() % 360));
+        model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+
+        // 4. now add to list of matrices
+        modelMatrices[i] = model;
+    }
+
+	unsigned int asteroidPositionBuffer;
+	glGenBuffers(1, &asteroidPositionBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, asteroidPositionBuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * amount, modelMatrices, GL_STATIC_DRAW);
+
+	for(unsigned int i = 0; i < asteroidModel.Meshes.size(); i++ )
 	{
-		for(int x = -10; x < 10; x+=2)
-		{
-			glm::vec2 translation;
-			translation.x = (float)x / 10.0f + offset;
-			translation.y = (float)y / 10.0f + offset;
-			translations[index++] = translation;
-		}
+		unsigned int VAO = asteroidModel.Meshes[i].VAO;
+		glBindVertexArray(VAO);
+
+		// vertex attribute 3 - 6 for model matrix (GL_ARRAY_BUFFER currently bound to asteroidPositionBuffer)
+		glEnableVertexAttribArray(3);
+		glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+		glEnableVertexAttribArray(4);
+		glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4) * 1));
+		glEnableVertexAttribArray(5);
+		glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4) * 2));
+		glEnableVertexAttribArray(6);
+		glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4) * 3));
+
+		// only update buffer every instance drawn
+		glVertexAttribDivisor(3, 1);
+		glVertexAttribDivisor(4, 1);
+		glVertexAttribDivisor(5, 1);
+		glVertexAttribDivisor(6, 1);
+
+		glBindVertexArray(0);
 	}
-	glGenBuffers(1, &instanceVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 100, translations, GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	unsigned int quadVAO, quadVBO;
-	glGenVertexArrays(1, &quadVAO);
-	glGenBuffers(1, &quadVBO);
-
-	glBindVertexArray(quadVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 100, quadVertices, GL_STATIC_DRAW);
-
-	// Vertex Attributes
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)(sizeof(float) * 3));
-
-	// Instance Attributes
-	glEnableVertexAttribArray(2); // uses current bound buffer to determine layout data and layout update
-	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glVertexAttribDivisor(2, 1); //(which vertex attribute, 0 = every vertex -> 1 = every instance -> 2 = every 2 instances...)
-
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	// Models
-	//Model demoModel{"resources/models/backpack/backpack.obj"};
-
+	
 	while (!glfwWindowShouldClose(appWindow))
 	{
 		t = glfwGetTime();
@@ -441,7 +457,6 @@ int main()
 			glfwSetWindowTitle(appWindow, fpsDescriptor.c_str());
 			if (fps < 40.0f)
 				std::cout << "Performance Drop: " << fps << std::endl;
-
 			totalTime = 0;
 		}
 
@@ -453,39 +468,46 @@ int main()
 		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glm::mat4 model = glm::mat4(1.0f);
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), RESOLUTION_X / RESOLUTION_Y, 0.1f, 100.0f);
+		glm::mat4 view = camera.GetViewMatrix();
 
-		// draw model
-		// basicModelShader.use();
+		basicModelShader.use();
+		basicModelShader.setMat4("projection", projection);
+		basicModelShader.setMat4("view", view);
+
+		// draw planet
+		glm::mat4 model = glm::mat4(1.0f);
+
+		model = glm::translate(model, glm::vec3(0.0f, -3.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(4.0f, 4.0f, 4.0f));
+		basicModelShader.setMat4("model", model);
+		demoModel.Draw(basicModelShader);
+
+		//draw asteroids w out instancing
 		// basicModelShader.setMat4("projection", projection);
-		// basicModelShader.setMat4("view", camera.GetViewMatrix());
-		// basicModelShader.setMat4("model", glm::mat4(1.0f));
-		// basicModelShader.setFloat("time", glfwGetTime());
-		// demoModel.Draw(basicModelShader);
-		// basicModelShader.unuse();
+		// basicModelShader.setMat4("view", view);
+		// for(unsigned int i = 0; i < amount; i++)
+		// {
+		// 	basicModelShader.setMat4("model", modelMatrices[i]);
+		// 	asteroidModel.Draw(basicModelShader);
+		// }
 
-		// draw reflective cube
-		// reflectiveShader.use();
-		// reflectiveShader.setMat4("projection", projection);
-		// reflectiveShader.setMat4("view", camera.GetViewMatrix());
-
-		// model = glm::mat4(1.0f);
-		// model = glm::translate(model, glm::vec3(0.5, 0.5, 2.0f));
-		// reflectiveShader.setMat4("model", model);
-		// reflectiveShader.setVec3("cameraPos", camera.Position);
-		// glActiveTexture(GL_TEXTURE0);
-		// glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
-		// glBindVertexArray(cubeVAO);
-		// glDrawArrays(GL_TRIANGLES, 0, 36);
-		// reflectiveShader.unuse();
-
-		// draw quad instances
+		// draw asteroids w instancing
 		instanceShader.use();
-		glBindVertexArray(quadVAO);
-		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 100);
+		instanceShader.setMat4("projection", projection);
+		instanceShader.setMat4("view", view);
+		instanceShader.setInt("material.texture_diffuse1", 0);
+		glActiveTexture(0);
+		glBindTexture(GL_TEXTURE_2D, asteroidModel.textures_loaded[0].id);
+		for(unsigned int i = 0; i < asteroidModel.Meshes.size(); i ++)
+		{
+			glBindVertexArray(asteroidModel.Meshes[i].VAO);
+			glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(asteroidModel.Meshes[i].Indices.size()), GL_UNSIGNED_INT, 0, amount);
+			glBindVertexArray(0);
+		}
 
 		// --- Draw Sky Box Last --
+		{
 		 glBindVertexArray(skyboxVAO);
 		 glDepthFunc(GL_LEQUAL); // To Draw Even When Previous Depth Buffer is the same
 		 skyboxShader.use();
@@ -498,6 +520,7 @@ int main()
 		 glDrawArrays(GL_TRIANGLES, 0, 36);
 		 skyboxShader.unuse();
 		 glDepthFunc(GL_LESS); // return to default
+		}
 
 		// swap buffers
 		glfwSwapBuffers(appWindow);
@@ -526,7 +549,6 @@ unsigned int LoadTexture(const std::string& path)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
 
 	if(nrChannels > 3)
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);

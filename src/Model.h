@@ -14,11 +14,11 @@ public:
 	~Model();
 
 	void Draw(Shader& shader);
+	std::vector<Mesh> Meshes;
+	std::vector<Texture> textures_loaded;
 private:
 	// model data
-	std::vector<Mesh> Meshes;
 	std::string directory;
-	std::vector<Texture> textures_loaded;
 
 	void loadModel(std::string& path);
 	void processNode(aiNode* node, const aiScene* scene);

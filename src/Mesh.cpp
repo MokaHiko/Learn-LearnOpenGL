@@ -31,7 +31,6 @@ void Mesh::Draw(Shader& shader)
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, Indices.size(), GL_UNSIGNED_INT, 0);
 
-	shader.unuse();
 	glBindVertexArray(0);
 }
 
